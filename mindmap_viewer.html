@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NotebookLM Mind Map Viewer</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        /* Tokyo Night Dark Theme Palette */
+        :root {
+            --bg-color: #1a1b26;
+            --surface-color: #24283b;
+            --surface-highlight: #292e42;
+            --text-primary: #c0caf5;
+            --text-secondary: #a9b1d6;
+            --text-muted: #565f89;
+            --accent-primary: #7aa2f7;
+            --accent-secondary: #bb9af7;
+            --accent-success: #9ece6a;
+            --accent-error: #f7768e;
+            --accent-warning: #e0af68;
+            --accent-info: #7dcfff;
+        }
+
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap');
+
+        body { 
+            font-family: 'Inter', system-ui, -apple-system, sans-serif; 
+            background-color: var(--bg-color); 
+            color: var(--text-primary);
+            margin: 0; 
+            padding: 0;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            padding: 1rem 2rem;
+            background: var(--surface-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            z-index: 10;
+        }
+
+        h1 { 
+            color: var(--accent-primary); 
+            font-size: 1.25rem;
+            font-weight: 800;
+            margin: 0;
+            letter-spacing: -0.5px;
+        }
+
+        .upload-btn-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+        }
+
+        .btn {
+            border: none;
+            color: var(--bg-color);
+            background-color: var(--accent-primary);
+            padding: 0.5rem 1.25rem;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn:hover {
+            background-color: var(--accent-info);
+            transform: translateY(-1px);
+        }
+
+        .upload-btn-wrapper input[type=file] {
+            font-size: 100px;
+            position: absolute;
+            left: 0;
+            top: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        main {
+            flex-grow: 1;
+            position: relative;
+            background: radial-gradient(circle at center, var(--surface-highlight) 0%, var(--bg-color) 100%);
+        }
+
+        #mindmap {
+            width: 100%;
+            height: 100%;
+        }
+
+        .node circle {
+            fill: var(--surface-color);
+            stroke: var(--accent-primary);
+            stroke-width: 2px;
+            cursor: pointer;
+        }
+
+        .node text {
+            font-size: 12px;
+            fill: var(--text-primary);
+            pointer-events: none;
+            text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+        }
+
+        .link {
+            fill: none;
+            stroke: var(--text-muted);
+            stroke-opacity: 0.4;
+            stroke-width: 1.5px;
+        }
+
+        .controls {
+            position: absolute;
+            bottom: 2rem;
+            right: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .control-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--surface-color);
+            color: var(--text-primary);
+            border: 1px solid var(--surface-highlight);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 1.2rem;
+            font-weight: bold;
+            transition: all 0.2s;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+
+        .control-btn:hover {
+            background: var(--surface-highlight);
+            color: var(--accent-primary);
+            border-color: var(--accent-primary);
+        }
+
+        .placeholder {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: var(--text-muted);
+        }
+
+        .placeholder p {
+            font-size: 1.1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        /* Tooltip style */
+        .tooltip {
+            position: absolute;
+            padding: 8px 12px;
+            background: var(--surface-highlight);
+            color: var(--text-primary);
+            border: 1px solid var(--accent-primary);
+            border-radius: 6px;
+            pointer-events: none;
+            font-size: 0.85rem;
+            opacity: 0;
+            transition: opacity 0.2s;
+            z-index: 100;
+            max-width: 300px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>NotebookLM Mind Map</h1>
+        <div class="upload-btn-wrapper">
+            <button class="btn">Upload JSON</button>
+            <input type="file" id="fileInput" accept=".json">
+        </div>
+    </header>
+
+    <main id="container">
+        <div id="placeholder" class="placeholder">
+            <p>Upload a Mind Map JSON file from NotebookLM to begin.</p>
+            <div class="upload-btn-wrapper">
+                <button class="btn">Choose JSON File</button>
+                <input type="file" id="fileInputPlaceholder" accept=".json">
+            </div>
+        </div>
+        <svg id="mindmap"></svg>
+        <div id="tooltip" class="tooltip"></div>
+        <div class="controls" id="zoomControls" style="display: none;">
+            <button class="control-btn" onclick="zoomIn()">+</button>
+            <button class="control-btn" onclick="zoomOut()">−</button>
+            <button class="control-btn" onclick="resetZoom()">⟲</button>
+        </div>
+    </main>
+
+    <script>
+        const svg = d3.select("#mindmap");
+        const container = d3.select("#container");
+        const tooltip = d3.select("#tooltip");
+        const placeholder = document.getElementById('placeholder');
+        const zoomControls = document.getElementById('zoomControls');
+        
+        let width = window.innerWidth;
+        let height = window.innerHeight - 60;
+        let root;
+        let g;
+
+        const zoom = d3.zoom()
+            .scaleExtent([0.1, 3])
+            .on("zoom", (event) => {
+                if (g) g.attr("transform", event.transform);
+            });
+
+        svg.call(zoom);
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    renderMindMap(data);
+                    placeholder.style.display = 'none';
+                    zoomControls.style.display = 'flex';
+                } catch (err) {
+                    alert("Error parsing JSON file: " + err.message);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        document.getElementById('fileInput').addEventListener('change', handleFileSelect);
+        document.getElementById('fileInputPlaceholder').addEventListener('change', handleFileSelect);
+
+        window.addEventListener('resize', () => {
+            width = window.innerWidth;
+            height = window.innerHeight - 60;
+            svg.attr("width", width).attr("height", height);
+        });
+
+        function renderMindMap(data) {
+            // Clear existing
+            svg.selectAll("*").remove();
+            g = svg.append("g");
+
+            const treeLayout = d3.tree().size([height - 100, width - 400]);
+            root = d3.hierarchy(data);
+            treeLayout(root);
+
+            // Add links
+            g.selectAll(".link")
+                .data(root.links())
+                .enter()
+                .append("path")
+                .attr("class", "link")
+                .attr("d", d3.linkHorizontal()
+                    .x(d => d.y)
+                    .y(d => d.x));
+
+            // Add nodes
+            const node = g.selectAll(".node")
+                .data(root.descendants())
+                .enter()
+                .append("g")
+                .attr("class", "node")
+                .attr("transform", d => `translate(${d.y},${d.x})`);
+
+            // Pulse effect for root
+            node.filter(d => d.depth === 0)
+                .append("circle")
+                .attr("r", 12)
+                .style("fill", "var(--accent-secondary)")
+                .style("stroke", "var(--accent-secondary)")
+                .style("stroke-opacity", 0.3)
+                .style("stroke-width", 0);
+
+            node.append("circle")
+                .attr("r", d => 6 - d.depth + 2)
+                .style("fill", d => {
+                    if (d.depth === 0) return "var(--accent-secondary)";
+                    if (d.depth === 1) return "var(--accent-primary)";
+                    return "var(--surface-color)";
+                })
+                .style("stroke", d => {
+                    if (d.depth === 0) return "var(--accent-secondary)";
+                    if (d.depth === 1) return "var(--accent-primary)";
+                    if (d.depth === 2) return "var(--accent-success)";
+                    return "var(--text-muted)";
+                })
+                .on("mouseover", (event, d) => {
+                    tooltip.transition().duration(200).style("opacity", 1);
+                    tooltip.html(`<strong>${d.data.name}</strong>${d.children ? `<br><small>${d.children.length} topics</small>` : ""}`)
+                        .style("left", (event.pageX + 10) + "px")
+                        .style("top", (event.pageY - 10) + "px");
+                    
+                    d3.select(event.currentTarget).transition().duration(200).attr("r", 8);
+                })
+                .on("mouseout", (event, d) => {
+                    tooltip.transition().duration(500).style("opacity", 0);
+                    d3.select(event.currentTarget).transition().duration(200).attr("r", 6 - d.depth + 2);
+                });
+
+            node.append("text")
+                .attr("dy", "0.31em")
+                .attr("x", d => d.children ? -12 : 12)
+                .attr("text-anchor", d => d.children ? "end" : "start")
+                .text(d => d.data.name)
+                .clone(true).lower()
+                .attr("stroke", "var(--bg-color)")
+                .attr("stroke-width", 3);
+
+            // Center the map initially
+            resetZoom();
+        }
+
+        function zoomIn() {
+            svg.transition().call(zoom.scaleBy, 1.3);
+        }
+
+        function zoomOut() {
+            svg.transition().call(zoom.scaleBy, 0.7);
+        }
+
+        function resetZoom() {
+            const bounds = g.node().getBBox();
+            const fullWidth = width;
+            const fullHeight = height;
+            const widthScale = 0.8 / (bounds.width / fullWidth);
+            const heightScale = 0.8 / (bounds.height / fullHeight);
+            const midX = bounds.x + bounds.width / 2;
+            const midY = bounds.y + bounds.height / 2;
+            const scale = Math.min(widthScale, heightScale, 1.5);
+            
+            svg.transition().duration(750).call(
+                zoom.transform,
+                d3.zoomIdentity
+                    .translate(fullWidth / 2, fullHeight / 2)
+                    .scale(scale)
+                    .translate(-midX, -midY)
+            );
+        }
+    </script>
+</body>
+</html>
