@@ -21,6 +21,8 @@
             --accent-info: #7dcfff;
         }
 
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:ital,wght@0,400..800;1,400..800&display=swap');
+
         body { 
             font-family: 'Inter', system-ui, -apple-system, sans-serif; 
             background-color: var(--bg-color); 
@@ -110,6 +112,8 @@
             overflow-y: auto; 
             background: var(--surface-color);
             color: var(--text-primary);
+            /* Apply Nerd Font as primary with fallback to JetBrains Mono */
+            font-family: 'JetBrainsMono Nerd Font', 'FiraCode Nerd Font', 'DroidSansMono Nerd Font', 'MesloLGS NF', 'JetBrains Mono', monospace;
         }
 
         /* Styling Markdown Elements inside Cards */
