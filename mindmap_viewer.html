@@ -306,11 +306,11 @@
             const defs = svg.append("defs");
             g = svg.append("g");
 
-            // Use radial tree layout
-            const radius = Math.min(width, height) / 2 - 140;
+            // Increase radius significantly for legibility
+            const radius = Math.min(width, height) * 0.8;
             const treeLayout = d3.tree()
                 .size([2 * Math.PI, radius])
-                .separation((a, b) => (a.parent == b.parent ? 1 : 2) / a.depth);
+                .separation((a, b) => (a.parent == b.parent ? 1.5 : 2.5));
 
             root_data = d3.hierarchy(data);
             treeLayout(root_data);
@@ -325,17 +325,19 @@
             feMerge.append("feMergeNode").attr("in", "coloredBlur");
             feMerge.append("feMergeNode").attr("in", "SourceGraphic");
 
-            // Links with radial paths
-            const linkGenerator = d3.linkRadial()
-                .angle(d => d.x)
-                .radius(d => d.y);
+            // Helper to get coordinates (Cartesian for horizontal text)
+            const getX = d => d.y * Math.cos(d.x - Math.PI / 2);
+            const getY = d => d.y * Math.sin(d.x - Math.PI / 2);
 
+            // Links with radial paths
             const link = g.selectAll(".link")
                 .data(root_data.links())
                 .enter()
                 .append("path")
                 .attr("class", "link")
-                .attr("d", linkGenerator);
+                .attr("d", d3.linkRadial()
+                    .angle(d => d.x)
+                    .radius(d => d.y));
 
             // Nodes
             const node = g.selectAll(".node")
@@ -343,23 +345,20 @@
                 .enter()
                 .append("g")
                 .attr("class", "node")
-                .attr("transform", d => `
-                    rotate(${d.x * 180 / Math.PI - 90})
-                    translate(${d.y},0)
-                `);
+                .attr("transform", d => `translate(${getX(d)},${getY(d)})`);
 
             // Background glow for primary nodes
             node.filter(d => d.depth < 2)
                 .append("circle")
-                .attr("r", d => d.depth === 0 ? 20 : 12)
+                .attr("r", d => d.depth === 0 ? 30 : 18)
                 .style("fill", d => d.depth === 0 ? "var(--accent-secondary)" : "var(--accent-primary)")
                 .style("opacity", 0.15)
-                .style("filter", "blur(8px)");
+                .style("filter", "blur(12px)");
 
             node.append("circle")
                 .attr("r", d => {
-                    if (d.depth === 0) return 10;
-                    if (d.depth === 1) return 7;
+                    if (d.depth === 0) return 12;
+                    if (d.depth === 1) return 8;
                     return 5;
                 })
                 .style("fill", d => {
@@ -374,9 +373,8 @@
                     if (d.depth === 2) return "var(--accent-success)";
                     return "var(--text-muted)";
                 })
-                .style("stroke-width", "2px")
+                .style("stroke-width", "2.5px")
                 .on("mouseover", (event, d) => {
-                    // Highlight paths
                     link.filter(l => l.target === d || l.source === d)
                         .classed("link-active", true);
 
@@ -387,7 +385,7 @@
                     
                     d3.select(event.currentTarget)
                         .transition().duration(200)
-                        .attr("r", d.depth === 0 ? 14 : 11)
+                        .attr("r", d.depth === 0 ? 16 : 12)
                         .style("filter", "url(#glow)");
                 })
                 .on("mouseout", (event, d) => {
@@ -395,21 +393,31 @@
                     tooltip.transition().duration(500).style("opacity", 0);
                     d3.select(event.currentTarget)
                         .transition().duration(200)
-                        .attr("r", d.depth === 0 ? 10 : (d.depth === 1 ? 7 : 5))
+                        .attr("r", d.depth === 0 ? 12 : (d.depth === 1 ? 8 : 5))
                         .style("filter", "none");
                 });
 
             node.append("text")
                 .attr("dy", "0.35em")
-                .attr("x", d => d.x < Math.PI === !d.children ? 12 : -12)
-                .attr("text-anchor", d => d.x < Math.PI === !d.children ? "start" : "end")
-                .attr("transform", d => d.x >= Math.PI ? "rotate(180)" : null)
+                // Positioning text based on hemisphere (Right vs Left)
+                .attr("x", d => {
+                    if (d.depth === 0) return 0;
+                    const angle = (d.x * 180 / Math.PI) % 360;
+                    return (angle > 180) ? -15 : 15;
+                })
+                .attr("y", d => d.depth === 0 ? 35 : 0)
+                .attr("text-anchor", d => {
+                    if (d.depth === 0) return "middle";
+                    const angle = (d.x * 180 / Math.PI) % 360;
+                    return (angle > 180) ? "end" : "start";
+                })
                 .text(d => d.data.name)
-                .style("font-weight", d => d.depth < 2 ? "700" : "400")
+                .style("font-weight", d => d.depth < 2 ? "700" : "500")
+                .style("font-size", d => d.depth === 0 ? "20px" : (d.depth === 1 ? "16px" : "14px"))
                 .clone(true).lower()
                 .attr("stroke", "var(--bg-color)")
-                .attr("stroke-width", 4)
-                .style("opacity", 0.8);
+                .attr("stroke-width", 5)
+                .style("opacity", 0.95);
 
             resetZoom();
         }
