@@ -303,14 +303,14 @@
         function renderMindMap(data) {
             svg.selectAll("*").remove();
             
-            // Background grid pattern
             const defs = svg.append("defs");
-            
             g = svg.append("g");
 
+            // Use radial tree layout
+            const radius = Math.min(width, height) / 2 - 140;
             const treeLayout = d3.tree()
-                .nodeSize([40, 240]) // Width/Height separation
-                .separation((a, b) => (a.parent == b.parent ? 1 : 2));
+                .size([2 * Math.PI, radius])
+                .separation((a, b) => (a.parent == b.parent ? 1 : 2) / a.depth);
 
             root_data = d3.hierarchy(data);
             treeLayout(root_data);
@@ -325,15 +325,17 @@
             feMerge.append("feMergeNode").attr("in", "coloredBlur");
             feMerge.append("feMergeNode").attr("in", "SourceGraphic");
 
-            // Links with paths
+            // Links with radial paths
+            const linkGenerator = d3.linkRadial()
+                .angle(d => d.x)
+                .radius(d => d.y);
+
             const link = g.selectAll(".link")
                 .data(root_data.links())
                 .enter()
                 .append("path")
                 .attr("class", "link")
-                .attr("d", d3.linkHorizontal()
-                    .x(d => d.y)
-                    .y(d => d.x));
+                .attr("d", linkGenerator);
 
             // Nodes
             const node = g.selectAll(".node")
@@ -341,7 +343,10 @@
                 .enter()
                 .append("g")
                 .attr("class", "node")
-                .attr("transform", d => `translate(${d.y},${d.x})`);
+                .attr("transform", d => `
+                    rotate(${d.x * 180 / Math.PI - 90})
+                    translate(${d.y},0)
+                `);
 
             // Background glow for primary nodes
             node.filter(d => d.depth < 2)
@@ -353,9 +358,9 @@
 
             node.append("circle")
                 .attr("r", d => {
-                    if (d.depth === 0) return 8;
-                    if (d.depth === 1) return 6;
-                    return 4;
+                    if (d.depth === 0) return 10;
+                    if (d.depth === 1) return 7;
+                    return 5;
                 })
                 .style("fill", d => {
                     if (d.depth === 0) return "var(--accent-secondary)";
@@ -382,7 +387,7 @@
                     
                     d3.select(event.currentTarget)
                         .transition().duration(200)
-                        .attr("r", d.depth === 0 ? 12 : 10)
+                        .attr("r", d.depth === 0 ? 14 : 11)
                         .style("filter", "url(#glow)");
                 })
                 .on("mouseout", (event, d) => {
@@ -390,14 +395,15 @@
                     tooltip.transition().duration(500).style("opacity", 0);
                     d3.select(event.currentTarget)
                         .transition().duration(200)
-                        .attr("r", d.depth === 0 ? 8 : (d.depth === 1 ? 6 : 4))
+                        .attr("r", d.depth === 0 ? 10 : (d.depth === 1 ? 7 : 5))
                         .style("filter", "none");
                 });
 
             node.append("text")
                 .attr("dy", "0.35em")
-                .attr("x", d => d.children ? -15 : 15)
-                .attr("text-anchor", d => d.children ? "end" : "start")
+                .attr("x", d => d.x < Math.PI === !d.children ? 12 : -12)
+                .attr("text-anchor", d => d.x < Math.PI === !d.children ? "start" : "end")
+                .attr("transform", d => d.x >= Math.PI ? "rotate(180)" : null)
                 .text(d => d.data.name)
                 .style("font-weight", d => d.depth < 2 ? "700" : "400")
                 .clone(true).lower()
@@ -418,21 +424,11 @@
 
         function resetZoom() {
             if (!g) return;
-            const bounds = g.node().getBBox();
-            const fullWidth = width;
-            const fullHeight = height;
-            
-            const midX = bounds.x + bounds.width / 2;
-            const midY = bounds.y + bounds.height / 2;
-            
-            const scale = 0.85 / Math.max(bounds.width / fullWidth, bounds.height / fullHeight);
-            
             svg.transition().duration(1000).call(
                 zoom.transform,
                 d3.zoomIdentity
-                    .translate(fullWidth / 2, fullHeight / 2)
-                    .scale(Math.min(scale, 1.2))
-                    .translate(-midX, -midY)
+                    .translate(width / 2, height / 2)
+                    .scale(1)
             );
         }
     </script>
