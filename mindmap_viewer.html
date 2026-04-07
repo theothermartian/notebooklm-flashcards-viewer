@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NotebookLM Mind Map Viewer</title>
+    <title>Mind Map Explorer</title>
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <style>
         /* Tokyo Night Dark Theme Palette */
@@ -23,7 +23,7 @@
             --accent-terminal: #414868;
         }
 
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap');
 
         body { 
             font-family: 'Inter', system-ui, -apple-system, sans-serif; 
@@ -38,76 +38,13 @@
             flex-direction: column;
         }
 
-        /* Glassmorphism Header */
-        header {
-            padding: 1rem 2.5rem;
-            background: rgba(36, 40, 59, 0.7);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-            z-index: 100;
-            position: sticky;
-            top: 0;
-        }
-
-        h1 { 
-            background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            font-size: 1.5rem;
-            font-weight: 800;
-            margin: 0;
-            letter-spacing: -0.5px;
-            filter: drop-shadow(0 0 10px rgba(122, 162, 247, 0.3));
-        }
-
-        .upload-btn-wrapper {
-            position: relative;
-            overflow: hidden;
-            display: inline-block;
-        }
-
-        .btn {
-            border: 1px solid rgba(122, 162, 247, 0.5);
-            color: var(--accent-primary);
-            background: rgba(122, 162, 247, 0.1);
-            padding: 0.6rem 1.5rem;
-            border-radius: 10px;
-            font-size: 0.95rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .btn:hover {
-            background: var(--accent-primary);
-            color: var(--bg-color);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 20px rgba(122, 162, 247, 0.4);
-        }
-
-        .upload-btn-wrapper input[type=file] {
-            font-size: 100px;
-            position: absolute;
-            left: 0;
-            top: 0;
-            opacity: 0;
-            cursor: pointer;
-        }
-
         main {
             flex-grow: 1;
             position: relative;
             background-color: var(--bg-color);
             background-image: 
-                radial-gradient(circle at 2px 2px, rgba(255, 255, 255, 0.03) 1px, transparent 0);
-            background-size: 40px 40px;
+                radial-gradient(circle at 2px 2px, rgba(255, 255, 255, 0.02) 1px, transparent 0);
+            background-size: 50px 50px;
         }
 
         #mindmap {
@@ -138,38 +75,39 @@
         .link {
             fill: none;
             stroke: var(--accent-terminal);
-            stroke-opacity: 0.6;
-            stroke-width: 2px;
+            stroke-opacity: 0.5;
+            stroke-width: 1.5px;
             transition: all 0.3s ease;
         }
 
         .link-active {
             stroke: var(--accent-primary);
             stroke-opacity: 1;
-            stroke-width: 3px;
-            filter: drop-shadow(0 0 5px var(--accent-primary));
+            stroke-width: 2.5px;
+            filter: drop-shadow(0 0 8px var(--accent-primary));
         }
 
         /* Controls styling */
         .controls {
             position: absolute;
-            bottom: 2.5rem;
-            right: 2.5rem;
+            bottom: 2rem;
+            right: 2rem;
             display: flex;
             flex-direction: column;
             gap: 0.75rem;
-            background: rgba(36, 40, 59, 0.8);
-            padding: 0.75rem;
-            border-radius: 16px;
-            backdrop-filter: blur(10px);
+            background: rgba(36, 40, 59, 0.6);
+            padding: 0.6rem;
+            border-radius: 14px;
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
             border: 1px solid rgba(255, 255, 255, 0.05);
             box-shadow: 0 8px 32px rgba(0,0,0,0.4);
         }
 
         .control-btn {
-            width: 44px;
-            height: 44px;
-            border-radius: 12px;
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
             background: var(--surface-highlight);
             color: var(--text-primary);
             border: 1px solid transparent;
@@ -177,76 +115,148 @@
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            font-size: 1.4rem;
+            font-size: 1.2rem;
             transition: all 0.2s;
         }
 
         .control-btn:hover {
             background: var(--accent-primary);
             color: var(--bg-color);
-            transform: scale(1.1);
+            transform: scale(1.05);
         }
 
+        /* Minimal Placeholder */
         .placeholder {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
             text-align: center;
-            background: var(--surface-color);
-            padding: 4rem;
-            border-radius: 24px;
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2rem;
+            z-index: 50;
         }
 
-        .placeholder p {
-            font-size: 1.2rem;
+        .placeholder h2 {
+            font-family: 'Inter', sans-serif;
+            font-weight: 300;
+            font-size: 2.5rem;
             color: var(--text-secondary);
-            margin-bottom: 2.5rem;
-            max-width: 300px;
-            line-height: 1.5;
+            margin: 0;
+            letter-spacing: -1px;
+            opacity: 0.8;
+        }
+
+        .upload-btn-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+        }
+
+        .btn {
+            border: 1px solid rgba(122, 162, 247, 0.3);
+            color: var(--accent-primary);
+            background: transparent;
+            padding: 0.8rem 2.5rem;
+            border-radius: 100px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(5px);
+        }
+
+        .btn:hover {
+            background: var(--accent-primary);
+            color: var(--bg-color);
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 30px rgba(122, 162, 247, 0.25);
+            letter-spacing: 1px;
+        }
+
+        .upload-btn-wrapper input[type=file] {
+            font-size: 100px;
+            position: absolute;
+            left: 0;
+            top: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        /* Floating upload icon in corner when map is loaded */
+        #cornerUpload {
+            position: absolute;
+            top: 2rem;
+            left: 2rem;
+            display: none;
+            z-index: 60;
+        }
+
+        .minimal-icon-btn {
+            background: rgba(36, 40, 59, 0.5);
+            border: 1px solid rgba(255,255,255,0.05);
+            color: var(--text-muted);
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            backdrop-filter: blur(10px);
+        }
+
+        .minimal-icon-btn:hover {
+            color: var(--accent-primary);
+            border-color: rgba(122, 162, 247, 0.3);
+            background: rgba(36, 40, 59, 0.8);
         }
 
         /* Glowing Tooltip */
         .tooltip {
             position: absolute;
-            padding: 12px 16px;
-            background: rgba(26, 27, 38, 0.95);
+            padding: 12px 18px;
+            background: rgba(26, 27, 38, 0.9);
             color: var(--text-primary);
-            border: 1px solid var(--accent-primary);
-            border-radius: 12px;
+            border: 1px solid rgba(122, 162, 247, 0.4);
+            border-radius: 14px;
             pointer-events: none;
             font-size: 0.9rem;
             opacity: 0;
             z-index: 1000;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.6), 0 0 15px rgba(122, 162, 247, 0.2);
-            backdrop-filter: blur(5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            backdrop-filter: blur(8px);
         }
 
-        .tooltip strong { color: var(--accent-info); }
+        .tooltip strong { color: var(--accent-info); display: block; margin-bottom: 4px; }
 
     </style>
 </head>
 <body>
-    <header>
-        <h1>Database Masterclass Explorer</h1>
-        <div class="upload-btn-wrapper">
-            <button class="btn"><span>📂</span> Upload JSON</button>
-            <input type="file" id="fileInput" accept=".json">
-        </div>
-    </header>
-
     <main id="container">
+        <!-- Minimal Initial Screen -->
         <div id="placeholder" class="placeholder">
-            <p>Ready to visualize your database architecture? Select a NotebookLM JSON.</p>
+            <h2>Mind Map Explorer</h2>
             <div class="upload-btn-wrapper">
-                <button class="btn" style="padding: 1rem 2rem; font-size: 1.1rem;"><span>🚀</span> Open Mind Map</button>
+                <button class="btn">Open JSON</button>
                 <input type="file" id="fileInputPlaceholder" accept=".json">
             </div>
         </div>
+
+        <!-- Hidden Corner Upload -->
+        <div id="cornerUpload">
+            <div class="upload-btn-wrapper">
+                <div class="minimal-icon-btn" title="Open new Mind Map">📂</div>
+                <input type="file" id="fileInput" accept=".json">
+            </div>
+        </div>
+
         <svg id="mindmap"></svg>
         <div id="tooltip" class="tooltip"></div>
+        
         <div class="controls" id="zoomControls" style="display: none;">
             <button class="control-btn" onclick="zoomIn()" title="Zoom In">+</button>
             <button class="control-btn" onclick="zoomOut()" title="Zoom Out">−</button>
@@ -259,9 +269,10 @@
         const tooltip = d3.select("#tooltip");
         const placeholder = document.getElementById('placeholder');
         const zoomControls = document.getElementById('zoomControls');
+        const cornerUpload = document.getElementById('cornerUpload');
         
         let width = window.innerWidth;
-        let height = window.innerHeight - 80;
+        let height = window.innerHeight;
         let root_data;
         let g;
 
@@ -284,6 +295,7 @@
                     renderMindMap(data);
                     placeholder.style.display = 'none';
                     zoomControls.style.display = 'flex';
+                    cornerUpload.style.display = 'block';
                 } catch (err) {
                     alert("Error parsing JSON file: " + err.message);
                 }
@@ -296,36 +308,32 @@
 
         window.addEventListener('resize', () => {
             width = window.innerWidth;
-            height = window.innerHeight - 80;
+            height = window.innerHeight;
             svg.attr("width", width).attr("height", height);
         });
 
         function renderMindMap(data) {
             svg.selectAll("*").remove();
-            
             const defs = svg.append("defs");
             g = svg.append("g");
 
-            // Increase radius significantly for legibility
-            const radius = Math.min(width, height) * 0.8;
+            // INCREASED SPACING: Larger radius and separation multipliers
+            const radius = Math.min(width, height) * 1.1; 
             const treeLayout = d3.tree()
                 .size([2 * Math.PI, radius])
-                .separation((a, b) => (a.parent == b.parent ? 1.5 : 2.5));
+                .separation((a, b) => (a.parent == b.parent ? 2.5 : 4.5)); // Significantly spaced out
 
             root_data = d3.hierarchy(data);
             treeLayout(root_data);
 
             // Glowing line filter
-            const filter = defs.append("filter")
-                .attr("id", "glow");
-            filter.append("feGaussianBlur")
-                .attr("stdDeviation", "2.5")
-                .attr("result", "coloredBlur");
+            const filter = defs.append("filter").attr("id", "glow");
+            filter.append("feGaussianBlur").attr("stdDeviation", "2.5").attr("result", "coloredBlur");
             const feMerge = filter.append("feMerge");
             feMerge.append("feMergeNode").attr("in", "coloredBlur");
             feMerge.append("feMergeNode").attr("in", "SourceGraphic");
 
-            // Helper to get coordinates (Cartesian for horizontal text)
+            // Cartesian coordinate helpers
             const getX = d => d.y * Math.cos(d.x - Math.PI / 2);
             const getY = d => d.y * Math.sin(d.x - Math.PI / 2);
 
@@ -335,9 +343,7 @@
                 .enter()
                 .append("path")
                 .attr("class", "link")
-                .attr("d", d3.linkRadial()
-                    .angle(d => d.x)
-                    .radius(d => d.y));
+                .attr("d", d3.linkRadial().angle(d => d.x).radius(d => d.y));
 
             // Nodes
             const node = g.selectAll(".node")
@@ -347,18 +353,18 @@
                 .attr("class", "node")
                 .attr("transform", d => `translate(${getX(d)},${getY(d)})`);
 
-            // Background glow for primary nodes
+            // Glows
             node.filter(d => d.depth < 2)
                 .append("circle")
-                .attr("r", d => d.depth === 0 ? 30 : 18)
+                .attr("r", d => d.depth === 0 ? 35 : 22)
                 .style("fill", d => d.depth === 0 ? "var(--accent-secondary)" : "var(--accent-primary)")
-                .style("opacity", 0.15)
-                .style("filter", "blur(12px)");
+                .style("opacity", 0.12)
+                .style("filter", "blur(15px)");
 
             node.append("circle")
                 .attr("r", d => {
-                    if (d.depth === 0) return 12;
-                    if (d.depth === 1) return 8;
+                    if (d.depth === 0) return 14;
+                    if (d.depth === 1) return 9;
                     return 5;
                 })
                 .style("fill", d => {
@@ -375,68 +381,58 @@
                 })
                 .style("stroke-width", "2.5px")
                 .on("mouseover", (event, d) => {
-                    link.filter(l => l.target === d || l.source === d)
-                        .classed("link-active", true);
-
+                    link.filter(l => l.target === d || l.source === d).classed("link-active", true);
                     tooltip.transition().duration(200).style("opacity", 1);
-                    tooltip.html(`<strong>${d.data.name}</strong>${d.children ? `<br><span style="color:var(--text-muted)">${d.children.length} sub-topics</span>` : ""}`)
-                        .style("left", (event.pageX + 15) + "px")
-                        .style("top", (event.pageY - 15) + "px");
+                    tooltip.html(`<strong>${d.data.name}</strong>${d.children ? `<span style="color:var(--text-muted);font-size:0.8rem;">${d.children.length} segments</span>` : ""}`)
+                        .style("left", (event.pageX + 20) + "px")
+                        .style("top", (event.pageY - 20) + "px");
                     
-                    d3.select(event.currentTarget)
-                        .transition().duration(200)
-                        .attr("r", d.depth === 0 ? 16 : 12)
-                        .style("filter", "url(#glow)");
+                    d3.select(event.currentTarget).transition().duration(200).attr("r", d.depth === 0 ? 18 : 13).style("filter", "url(#glow)");
                 })
                 .on("mouseout", (event, d) => {
                     link.classed("link-active", false);
                     tooltip.transition().duration(500).style("opacity", 0);
-                    d3.select(event.currentTarget)
-                        .transition().duration(200)
-                        .attr("r", d.depth === 0 ? 12 : (d.depth === 1 ? 8 : 5))
-                        .style("filter", "none");
+                    d3.select(event.currentTarget).transition().duration(200).attr("r", d.depth === 0 ? 14 : (d.depth === 1 ? 9 : 5)).style("filter", "none");
                 });
 
             node.append("text")
                 .attr("dy", "0.35em")
-                // Positioning text based on hemisphere (Right vs Left)
                 .attr("x", d => {
                     if (d.depth === 0) return 0;
                     const angle = (d.x * 180 / Math.PI) % 360;
-                    return (angle > 180) ? -15 : 15;
+                    return (angle > 180) ? -18 : 18;
                 })
-                .attr("y", d => d.depth === 0 ? 35 : 0)
+                .attr("y", d => d.depth === 0 ? 45 : 0)
                 .attr("text-anchor", d => {
                     if (d.depth === 0) return "middle";
                     const angle = (d.x * 180 / Math.PI) % 360;
                     return (angle > 180) ? "end" : "start";
                 })
                 .text(d => d.data.name)
-                .style("font-weight", d => d.depth < 2 ? "700" : "500")
-                .style("font-size", d => d.depth === 0 ? "20px" : (d.depth === 1 ? "16px" : "14px"))
+                .style("font-weight", d => d.depth < 2 ? "700" : "400")
+                .style("font-size", d => d.depth === 0 ? "24px" : (d.depth === 1 ? "18px" : "15px"))
                 .clone(true).lower()
                 .attr("stroke", "var(--bg-color)")
-                .attr("stroke-width", 5)
+                .attr("stroke-width", 6)
                 .style("opacity", 0.95);
 
             resetZoom();
         }
 
-        function zoomIn() {
-            svg.transition().duration(300).call(zoom.scaleBy, 1.5);
-        }
-
-        function zoomOut() {
-            svg.transition().duration(300).call(zoom.scaleBy, 0.6);
-        }
-
+        function zoomIn() { svg.transition().duration(300).call(zoom.scaleBy, 1.6); }
+        function zoomOut() { svg.transition().duration(300).call(zoom.scaleBy, 0.6); }
         function resetZoom() {
             if (!g) return;
-            svg.transition().duration(1000).call(
+            const bounds = g.node().getBBox();
+            const fullWidth = width;
+            const fullHeight = height;
+            const midX = bounds.x + bounds.width / 2;
+            const midY = bounds.y + bounds.height / 2;
+            const scale = 0.75 / Math.max(bounds.width / fullWidth, bounds.height / fullHeight);
+            
+            svg.transition().duration(1200).call(
                 zoom.transform,
-                d3.zoomIdentity
-                    .translate(width / 2, height / 2)
-                    .scale(1)
+                d3.zoomIdentity.translate(fullWidth / 2, fullHeight / 2).scale(Math.min(scale, 1)).translate(-midX, -midY)
             );
         }
     </script>
